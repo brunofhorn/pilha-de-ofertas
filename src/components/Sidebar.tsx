@@ -1,12 +1,11 @@
 "use client";
 
+import { ChevronLeft, ChevronRight, Menu, MessageSquare, Settings, Users2 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Menu, MessageSquare, Settings, Users2, ChevronRight, ChevronLeft } from "lucide-react";
 
 const Sidebar = () => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const location = { pathname: 'teste', basename: '' };
 
   const menuItems = [
     {
@@ -40,7 +39,7 @@ const Sidebar = () => {
         <div className="flex items-center justify-between p-4 border-b">
           {isExpanded && (
             <h1 className="text-xl font-semibold text-primary animate-fade-in">
-              Dashboard
+              Pilha de Ofertas
             </h1>
           )}
           <button
@@ -54,12 +53,11 @@ const Sidebar = () => {
             )}
           </button>
         </div>
-
         <nav className="flex-1 space-y-1 p-2">
           {menuItems.map((item) => (
             <Link
               key={item.path}
-              to={item.path}
+              href={item.path}
               className={`sidebar-link ${location.pathname === item.path ? "active" : ""
                 }`}
             >

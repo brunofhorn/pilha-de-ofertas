@@ -14,7 +14,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className={inter.className}>
         <div className="min-h-screen bg-gray-50">
-          <Sidebar />
+          <Sidebar/>
 
           <Header />
 

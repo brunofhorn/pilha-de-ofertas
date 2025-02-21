@@ -1,34 +1,14 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Menu, MessageSquare, Settings, Users2 } from "lucide-react";
+import { menu } from "@/data/menu";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const Sidebar = () => {
   const [isExpanded, setIsExpanded] = useState(true);
-
-  const menuItems = [
-    {
-      title: "Cadastrar Grupo",
-      icon: <Users2 className="sidebar-icon" />,
-      path: "/grupos/cadastrar",
-    },
-    {
-      title: "Listar Mensagens",
-      icon: <Menu className="sidebar-icon" />,
-      path: "/mensagens",
-    },
-    {
-      title: "Enviar Mensagem",
-      icon: <MessageSquare className="sidebar-icon" />,
-      path: "/mensagens/enviar",
-    },
-    {
-      title: "Configurações",
-      icon: <Settings className="sidebar-icon" />,
-      path: "/configuracoes",
-    },
-  ];
+  const pathname = usePathname();
 
   return (
     <aside
@@ -54,19 +34,22 @@ const Sidebar = () => {
           </button>
         </div>
         <nav className="flex-1 space-y-1 p-2">
-          {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              href={item.path}
-              className={`sidebar-link ${location.pathname === item.path ? "active" : ""
-                }`}
-            >
-              {item.icon}
-              {isExpanded && (
-                <span className="animate-fade-in truncate">{item.title}</span>
-              )}
-            </Link>
-          ))}
+          {menu.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.path}
+                href={item.path}
+                className={`sidebar-link ${pathname === item.path ? "active" : ""}`}
+              >
+                <Icon className="sidebar-icon" />
+                {isExpanded && (
+                  <span className="animate-fade-in truncate">{item.title}</span>
+                )}
+              </Link>
+            );
+          })}
         </nav>
       </div>
     </aside>

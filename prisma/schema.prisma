@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("NEXT_DATABASE_URL")
 }
 
 model Promotion {
@@ -19,4 +19,11 @@ model Promotion {
   updatedAt     DateTime @default(now())
   sendDate      DateTime @updatedAt
   sourceChannel String
+}
+
+model Group {
+  id        Int    @id @default(autoincrement())
+  name      String
+  channelId String
+  source    String
 }

@@ -7,9 +7,9 @@ export const menu = [
         path: "/promotions/list",
     },
     {
-        title: "Cadastrar Grupo",
+        title: "Grupos / Canais",
         icon: Users2,
-        path: "/groups/new",
+        path: "/groups",
     },
     {
         title: "Enviar Mensagem",

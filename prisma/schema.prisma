@@ -15,15 +15,17 @@ model Promotion {
   newPrice      Int
   link          String
   image         String?
-  createdAt     DateTime
-  updatedAt     DateTime @default(now())
-  sendDate      DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+  sendDate      DateTime
   sourceChannel String
 }
 
 model Group {
-  id        Int    @id @default(autoincrement())
-  name      String
-  channelId String
-  source    String
+  id        Int      @id @default(autoincrement())
+  name      String?
+  channelId String?
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button, Form, Input, Select, Table } from "antd";
+import { Button, Form, Input, Modal, notification, Select, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Edit2, Search, Trash2 } from "lucide-react";
-// import { format } from "date-fns";
+import { format } from "date-fns";
 import { api } from "@/lib/api";
 
 const schema = z.object({
@@ -18,7 +18,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 interface Group {
-    id: string;
+    id: number;
     name: string;
     source: string;
     createdAt: Date;
@@ -26,36 +26,155 @@ interface Group {
 
 export default function Groups() {
     const [groups, setGroups] = useState<Group[]>([]);
-    // const [error, setError] = useState('');
-    const [searchTerm, setSearchTerm] = useState("");
+    const [searchTerm, setSearchTerm] = useState<string>("");
+    const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
+    const [isTableLoading, setIsTableLoading] = useState<boolean>(false);
+    const [notificationApi, contextHolder] = notification.useNotification();
+    const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+    const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
+    const [editingGroup, setEditingGroup] = useState<Group | null>(null);
 
     const {
         control,
         handleSubmit,
         formState: { errors },
         reset,
+        setValue
     } = useForm<FormData>({
         resolver: zodResolver(schema),
         defaultValues: {
             name: "",
-            source: undefined,
+            source: "",
         },
     });
 
     const onSubmit = async (data: FormData) => {
-        const response = await api.post("/groups", { data });
+        setIsFormLoading(true);
 
-        console.log(response);
-        console.log("Form submitted:", data);
+        try {
+            if (!editingGroup) {
+                const response = await api.post("/groups", { data });
+
+                if (response.status === 201) {
+                    setGroups([...groups, response.data]);
+
+                    reset();
+
+                    notificationApi.open({
+                        message: 'Sucesso!',
+                        description: `O grupo / canal foi cadastrado com sucesso.`,
+                        duration: 3,
+                        placement: 'bottom',
+                        type: 'success',
+                    });
+                } else {
+                    notificationApi.open({
+                        message: 'Atenção!',
+                        description: `Ocorreu um erro ao tentar cadastrar o grupo / canal. ${response.data.message}`,
+                        duration: 3,
+                        placement: 'bottom',
+                        type: 'error',
+                    });
+                }
+            } else {
+
+                const response = await api.put(`/groups/${editingGroup.id}`, data);
+
+
+                if (response.status === 200) {
+                    const newGroups = groups.filter(group => group.id !== editingGroup.id);
+
+                    setGroups([...newGroups, response.data]);
+
+                    reset();
+
+                    notificationApi.open({
+                        message: 'Sucesso!',
+                        description: `O grupo / canal foi atualizado com sucesso.`,
+                        duration: 3,
+                        placement: 'bottom',
+                        type: 'success',
+                    });
+                } else {
+                    notificationApi.open({
+                        message: 'Atenção!',
+                        description: `Ocorreu um erro ao tentar atualizar o grupo / canal. ${response.data.message}`,
+                        duration: 3,
+                        placement: 'bottom',
+                        type: 'error',
+                    });
+                }
+
+                setEditingGroup(null);
+            }
+
+        } catch (error) {
+            console.error(`Erro ao ${editingGroup ? "editar" : "cadastrar"} um grupo: `, error);
+        } finally {
+            setIsFormLoading(false);
+        }
+    };
+
+    const handleEdit = (group: Group) => {
+        setEditingGroup(group);
+        setValue("name", group.name);
+        setValue("source", group.source);
+    };
+
+    const showDeleteConfirm = (group: Group) => {
+        setGroupToDelete(group);
+        setDeleteModalVisible(true);
+    };
+
+    const handleDeleteConfirm = () => {
+        if (groupToDelete) {
+            handleDelete();
+            setDeleteModalVisible(false);
+            setGroupToDelete(null);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteModalVisible(false);
+        setGroupToDelete(null);
+    };
+
+    const handleDelete = async () => {
+        try {
+            const response = await api.delete(`/groups/${groupToDelete?.id}`);
+
+            if (response.status === 200) {
+                const newGroups = groups.filter(group => group.id !== groupToDelete?.id);
+                setGroups(newGroups);
+                setGroupToDelete(null);
+                reset();
+
+                notificationApi.open({
+                    message: 'Sucesso!',
+                    description: `O grupo / canal foi removido com sucesso.`,
+                    duration: 3,
+                    placement: 'bottom',
+                    type: 'success',
+                });
+            } else {
+                notificationApi.open({
+                    message: 'Atenção!',
+                    description: `Ocorreu um erro ao tentar remover o grupo / canal. ${response.data.message}`,
+                    duration: 3,
+                    placement: 'bottom',
+                    type: 'error',
+                });
+            }
+        } catch (error) {
+            console.error("Erro na exclusão do grupo / canal.", error);
+        }
+    };
+
+    const handleCancel = () => {
         reset();
-    };
-
-    const handleEdit = (id: string) => {
-        console.log("Edit group:", id);
-    };
-
-    const handleDelete = (id: string) => {
-        console.log("Delete group:", id);
+        setValue("name", "");
+        setValue("source", "");
+        setEditingGroup(null)
     };
 
     const filteredGroups = groups.filter(
@@ -74,9 +193,7 @@ export default function Groups() {
             title: "Data de Cadastro",
             dataIndex: "createdAt",
             key: "createdAt",
-            // render: (date: Date) => format(date, "dd/MM/yyyy"),
-            render: (text) => text,
-
+            render: (date: Date) => format(new Date(date), "dd/MM/yyyy")
         },
         {
             title: "Origem",
@@ -89,14 +206,14 @@ export default function Groups() {
             render: (_, record) => (
                 <div className="flex gap-2">
                     <button
-                        onClick={() => handleEdit(record.id)}
+                        onClick={() => handleEdit(record)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
                         title="Editar"
                     >
                         <Edit2 className="h-4 w-4" />
                     </button>
                     <button
-                        onClick={() => handleDelete(record.id)}
+                        onClick={() => showDeleteConfirm(record)}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
                         title="Excluir"
                     >
@@ -108,12 +225,16 @@ export default function Groups() {
     ];
 
     useEffect(() => {
+        setIsTableLoading(true);
+
         async function fetchGroups() {
             try {
                 const response = await api.get('/groups');
                 setGroups(response.data ?? []);
             } catch (err) {
-                console.error("Erro ao listar os grupos: ", err)
+                console.error("Erro ao listar os grupos: ", err);
+            } finally {
+                setIsTableLoading(false);
             }
         }
 
@@ -122,6 +243,7 @@ export default function Groups() {
 
     return (
         <div className="space-y-6">
+            {contextHolder}
             <h1 className="text-2xl font-semibold text-gray-900">Cadastrar Grupo</h1>
 
             <div className="bg-white rounded-lg shadow p-6">
@@ -131,6 +253,7 @@ export default function Groups() {
                         help={errors.name?.message}
                         className="mb-0"
                         name="name"
+                        label="Nome / ID"
                     >
                         <Controller
                             name="name"
@@ -138,8 +261,8 @@ export default function Groups() {
                             render={({ field }) => (
                                 <Input
                                     {...field}
-                                    placeholder="Digite o nome do grupo"
-                                    className="min-w-[200px]"
+                                    placeholder="Digite o nome ou ID do grupo"
+                                    className="min-w-[300px]"
                                 />
                             )}
                         />
@@ -150,6 +273,7 @@ export default function Groups() {
                         help={errors.source?.message}
                         className="mb-0"
                         name="source"
+                        label="Origem"
                     >
                         <Controller
                             name="source"
@@ -169,8 +293,11 @@ export default function Groups() {
                         />
                     </Form.Item>
 
-                    <Button type="primary" htmlType="submit" className="bg-primary">
-                        Cadastrar
+                    <Button type="primary" htmlType={!isFormLoading ? "submit" : "button"} className="bg-primary">
+                        {editingGroup ? "Salvar Alterações" : "Cadastrar"}
+                    </Button>
+                    <Button type="default" htmlType="reset" className="bg-gray-200" onClick={handleCancel}>
+                        Cancelar
                     </Button>
                 </Form>
             </div>
@@ -188,12 +315,26 @@ export default function Groups() {
                 <Table
                     columns={columns}
                     dataSource={filteredGroups}
-                    rowKey="id"
+                    loading={isTableLoading}
+                    rowKey={(record) => record.id || Math.random().toString()}
                     pagination={{
                         pageSize: 10,
                     }}
                 />
             </div>
+            <Modal
+                title="Confirmar exclusão"
+                open={deleteModalVisible}
+                onOk={handleDeleteConfirm}
+                onCancel={handleDeleteCancel}
+                okText="Excluir"
+                cancelText="Cancelar"
+                okButtonProps={{ danger: true }}
+            >
+                <p>
+                    Tem certeza que deseja excluir o grupo {groupToDelete?.name}? Esta ação não poderá ser desfeita.
+                </p>
+            </Modal>
         </div>
     );
 }

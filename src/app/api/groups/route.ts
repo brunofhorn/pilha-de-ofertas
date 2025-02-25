@@ -18,17 +18,17 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         const { data } = await request.json();
-        
+
         const group = await prisma.group.create({
-            data:{
+            data: {
                 name: data.name,
                 source: data.source
             }
-        })
-    
-        return NextResponse.json({ message: 'Grupo / Canal cadastrado com sucesso.', group });
+        });
+
+        return NextResponse.json(group, { status: 201 });
     } catch (error) {
-        console.error("Error on post group: ", error)
+        console.error("Error on post group: ", error);
 
         return NextResponse.json(
             { message: 'Erro ao cadastrar grupo / canal.' },
